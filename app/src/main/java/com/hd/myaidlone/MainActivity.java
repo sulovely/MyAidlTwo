@@ -1,10 +1,5 @@
 package com.hd.myaidlone;
 
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.os.IBinder;
 import android.os.RemoteException;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -13,22 +8,29 @@ import android.view.View;
 import android.widget.Button;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
-    private static final String TAG = "MainActivity";
+    private static final String TAG = "dingwanshun";
 
     private Button btGetDemand;
-    private IDemandManager demandManager;
-    private ServiceConnection connection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            Log.e(TAG, "onServiceConnected: ");
-            demandManager = IDemandManager.Stub.asInterface(service);
-        }
+    private Button btRegister;
+    private Button btUnregister;
+    private Button btAdd;
+    private Button btJiami;
+    private Button btJiemi;
 
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
+    private ISecurityCenter mSecurityCenter;
+    private ICompute mCompute;
+    private IDemandManager mDemandManager;
+    private BinderPool binderPool;
 
+
+    private void findBinder(BinderPool binderPool) {
+        if (binderPool != null) {
+            mCompute = ICompute.Stub.asInterface(binderPool.queryBinder(0));
+            mSecurityCenter = ISecurityCenter.Stub.asInterface(binderPool.queryBinder(1));
+            mDemandManager = IDemandManager.Stub.asInterface(binderPool.queryBinder(2));
         }
-    };
+    }
+
 
     private IDemandListener.Stub listener = new IDemandListener.Stub() {
         @Override
@@ -37,24 +39,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     + msg.getContent() + ",msg.level = " + msg.getLevel());
         }
     };
-    private Button btRegister;
-    private Button btUnregister;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Intent intent = new Intent();
-        intent.setAction("com.hd.myaidlone");
-        intent.setPackage("com.hd.myaidlone");
-        bindService(intent, connection, Context.BIND_AUTO_CREATE);
+
         btGetDemand = findViewById(R.id.bt_getDemand);
         btRegister = findViewById(R.id.bt_register);
         btUnregister = findViewById(R.id.bt_unresigter);
+        btAdd = findViewById(R.id.bt_add);
+        btJiemi = findViewById(R.id.bt_jiemi);
+        btJiami = findViewById(R.id.bt_jiami);
         btGetDemand.setOnClickListener(this);
         btUnregister.setOnClickListener(this);
         btRegister.setOnClickListener(this);
+        btAdd.setOnClickListener(this);
+        btJiemi.setOnClickListener(this);
+        btJiami.setOnClickListener(this);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                bind();
+            }
+        }).start();
+    }
 
+    private void bind() {
+        binderPool = BinderPool.getInstance(this);
+        findBinder(binderPool);
     }
 
     @Override
@@ -62,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (v.getId()) {
             case R.id.bt_getDemand:
                 try {
-                    MessageBean messageBean = demandManager.getDemand();
+                    MessageBean messageBean = mDemandManager.getDemand();
                     Log.e(TAG, "D: messageBean.getContent = " + messageBean.getContent());
                 } catch (RemoteException e) {
                     e.printStackTrace();
@@ -71,18 +85,49 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             case R.id.bt_register:
                 try {
-                    demandManager.registerListener(listener);
+                    mDemandManager.registerListener(listener);
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
                 break;
             case R.id.bt_unresigter:
                 try {
-                    demandManager.unregisterListener(listener);
+                    mDemandManager.unregisterListener(listener);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+                break;
+
+            case R.id.bt_add:
+                try {
+                    int result = mCompute.add(5, 18);
+                    Log.e(TAG, "dingwanshun: " + result);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+                break;
+            case R.id.bt_jiami:
+                try {
+                    String result = mSecurityCenter.encypt("hello");
+                    Log.e(TAG, "dingwanshun: " + result);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+                break;
+            case R.id.bt_jiemi:
+                try {
+                    String result = mSecurityCenter.decrypt("6;221");
+                    Log.e(TAG, "dingwanshun:" + result);
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
                 break;
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        binderPool.unBinderService();
     }
 }

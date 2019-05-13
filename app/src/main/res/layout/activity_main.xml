@@ -22,4 +22,22 @@
         android:layout_height="wrap_content"
         android:text="unresigter" />
 
+    <Button
+        android:id="@+id/bt_add"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="加法" />
+
+    <Button
+        android:id="@+id/bt_jiami"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="加密" />
+
+    <Button
+        android:id="@+id/bt_jiemi"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="解密" />
+
 </LinearLayout>
